@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- HEAD START -->
+<title>Cricket Vision Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Track every delivery from the bowler's hand to the crease. A batter's-eye ball-tracking trainer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<!-- HEAD END -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-mode="normal">
+<!-- BODY START -->
+<div class="page">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Cricket Vision Trainer</h1>
+      <p class="sub">Batting viewpoint · Visual tracking mode</p>
+    </div>
+    <div class="status" id="status" data-state="ready" role="status" aria-live="polite">
+      <span class="status-dot" aria-hidden="true"></span><span id="statusText">Ready</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage-col" aria-label="Training view">
+      <div class="stage" id="stage">
+        <div class="screen">
+        <canvas id="view" role="img" aria-label="Batter's-eye view down the pitch. The bowler runs in and delivers toward you."></canvas>
+        <div class="hud hud-info" id="hudInfo">Normal tracking</div>
+        <div class="hud hud-speed" id="hudSpeed" hidden><span id="hudSpeedVal">0.0</span><small>km/h</small></div>
+        <div class="hud hud-arrival" id="hudArrival" hidden></div>
+        <div class="fs-bar">
+          <button type="button" class="btn btn-primary" id="fsBowl">Next ball</button>
+          <button type="button" class="btn btn-ghost-dark" id="fsExit">Exit fullscreen</button>
+        </div>
+        </div>
+        <div class="judge" id="judge" hidden>
+          <p class="judge-title">Call the delivery</p>
+          <div class="judge-row" role="group" aria-label="Length">
+            <span class="judge-label">Length</span>
+            <button type="button" class="chip" data-group="length" data-value="yorker" aria-pressed="false">Yorker</button>
+            <button type="button" class="chip" data-group="length" data-value="full" aria-pressed="false">Full</button>
+            <button type="button" class="chip" data-group="length" data-value="good" aria-pressed="false">Good</button>
+            <button type="button" class="chip" data-group="length" data-value="short" aria-pressed="false">Short</button>
+            <button type="button" class="chip" data-group="length" data-value="bouncer" aria-pressed="false">Bouncer</button>
+          </div>
+          <div class="judge-row" role="group" aria-label="Movement">
+            <span class="judge-label">Movement</span>
+            <button type="button" class="chip" data-group="movement" data-value="in" aria-pressed="false">Inswing</button>
+            <button type="button" class="chip" data-group="movement" data-value="straight" aria-pressed="false">Straight</button>
+            <button type="button" class="chip" data-group="movement" data-value="out" aria-pressed="false">Outswing</button>
+          </div>
+          <p class="judge-result" id="judgeResult" aria-live="polite"></p>
+        </div>
+      </div>
+      <p class="caption">Illustrative camera view. The ball travels toward you: pick it up in the bowler's hand and stay on it until it passes the crease.</p>
+
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="btnBowl">Bowl</button>
+        <button type="button" class="btn" id="btnNext">Next ball</button>
+        <button type="button" class="btn" id="btnFull">Fullscreen</button>
+        <label class="switch" for="auto">
+          <input type="checkbox" id="auto">
+          <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+          <span>Auto bowling <b id="autoState">Off</b></span>
+        </label>
+        <span class="keys"><kbd>Space</kbd> bowl · <kbd>F</kbd> fullscreen</span>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Settings and session">
+      <fieldset class="modes">
+        <legend>Training mode</legend>
+        <label class="mode"><input type="radio" name="mode" id="modeNormal" value="normal" checked>
+          <span><b>Normal tracking</b><small>You set the delivery. A path and pitch mark show after each ball.</small></span></label>
+        <label class="mode"><input type="radio" name="mode" id="modeRandom" value="random">
+          <span><b>Random delivery</b><small>Speed, movement and length change every ball. Revealed afterwards.</small></span></label>
+        <label class="mode"><input type="radio" name="mode" id="modeReaction" value="reaction">
+          <span><b>Reaction training</b><small>No guides or advance information. Call the length and movement.</small></span></label>
+      </fieldset>
+
+      <div class="fields">
+        <div class="field">
+          <label for="bowlType">Bowling type</label>
+          <select id="bowlType">
+            <option value="fast" selected>Fast</option>
+            <option value="medium">Medium</option>
+            <option value="offspin">Off-spin</option>
+            <option value="legspin">Leg-spin</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="arm">Bowler</label>
+          <select id="arm">
+            <option value="right" selected>Right-arm over</option>
+            <option value="left">Left-arm over</option>
+          </select>
+        </div>
+        <div class="field field-wide">
+          <label for="speed">Speed <output id="speedOut" for="speed">140</output> km/h</label>
+          <input type="range" id="speed" min="40" max="160" step="1" value="140">
+          <div class="scale" aria-hidden="true"><span>40</span><span>80</span><span>120</span><span>160</span></div>
+        </div>
+        <div class="field">
+          <label for="movement">Movement</label>
+          <select id="movement">
+            <option value="out" selected>Outswing</option>
+            <option value="in">Inswing</option>
+            <option value="straight">Straight</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="length">Length</label>
+          <select id="length">
+            <option value="yorker">Yorker</option>
+            <option value="full">Full</option>
+            <option value="good" selected>Good length</option>
+            <option value="short">Short</option>
+            <option value="bouncer">Bouncer</option>
+            <option value="random">Random</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ballColor">Ball</label>
+          <select id="ballColor">
+            <option value="red" selected>Red (Test)</option>
+            <option value="white">White (limited overs)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="interval">Auto gap <output id="intervalOut" for="interval">4 s</output></label>
+          <input type="range" id="interval" min="2" max="10" step="1" value="4">
+        </div>
+        <p class="random-note field-wide" id="randomNote" hidden>Speed, movement and length are chosen for you in this mode. Bowling type and arm still apply.</p>
+        <label class="check field-wide" for="sound"><input type="checkbox" id="sound"> Sound when the ball pitches</label>
+      </div>
+
+      <section class="session" aria-label="Session">
+        <h2>Session</h2>
+        <dl class="stats">
+          <div><dt>Overs</dt><dd id="statBalls">0.0</dd></div>
+          <div><dt>Avg km/h</dt><dd id="statAvg">—</dd></div>
+          <div><dt>Fastest</dt><dd id="statTop">—</dd></div>
+          <div><dt>Calls</dt><dd id="statCalls">—</dd></div>
+        </dl>
+        <div class="over">
+          <span class="over-label" id="overLabel">Over 1</span>
+          <div class="slots" id="overSlots"></div>
+        </div>
+        <ol class="log" id="log"></ol>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <p>A visual tracking exercise. It does not measure eye movement or prove any improvement in eyesight. No camera is used.</p>
+  </footer>
+</div>
+<!-- BODY END -->
+<script src="js/ballPhysics.js"></script>
+<script src="js/bowler.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/session.js"></script>
+<script src="js/controls.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
